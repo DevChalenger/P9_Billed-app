@@ -159,7 +159,7 @@ export default class {
         this.handleEditTicket(e, bill, bills)
       );
     });
-    console.log(getStatus(this.index));
+
     return bills;
   }
 
@@ -169,12 +169,14 @@ export default class {
         .bills()
         .list()
         .then((snapshot) => {
-          const bills = snapshot.map((doc) => ({
-            id: doc.id,
-            ...doc,
-            date: doc.date,
-            status: doc.status,
-          }));
+          const bills = snapshot
+            .sort((a, b) => new Date(b.date) - new Date(a.date))
+            .map((doc) => ({
+              id: doc.id,
+              ...doc,
+              date: doc.date,
+              status: doc.status,
+            }));
           return bills;
         })
         .catch((error) => {
