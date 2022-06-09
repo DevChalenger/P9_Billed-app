@@ -25,6 +25,7 @@ describe("Given I am connected as an employee", () => {
       "user",
       JSON.stringify({
         type: "Employee",
+        email: "e@e",
       })
     );
     onNavigate = (pathname) => {
@@ -112,16 +113,12 @@ describe("Given I am connected as an employee", () => {
     describe("When an error occurs on API", () => {
       beforeEach(() => {
         jest.spyOn(mockStore, "bills");
-        localStorage.setItem(
-          "user",
-          JSON.stringify({ type: "Employee", email: "a@a" })
-        );
         const root = document.createElement("div");
         root.setAttribute("id", "root");
         document.body.appendChild(root);
         router();
       });
-      test("should fetches bills from an API and fails with 404 message error", async () => {
+      it("should fetches bills from an API and fails with 404 message error", async () => {
         mockStore.bills.mockImplementationOnce(() => {
           return {
             list: () => {
@@ -131,11 +128,11 @@ describe("Given I am connected as an employee", () => {
         });
         window.onNavigate(ROUTES_PATH.Bills);
         await new Promise(process.nextTick);
-        const message = await screen.getByText(/Erreur 404/);
+        const message = screen.getByText(/Erreur 404/);
         expect(message).toBeTruthy();
       });
 
-      test("should fetches messages from an API and fails with 500 message error", async () => {
+      it("should fetches messages from an API and fails with 500 message error", async () => {
         mockStore.bills.mockImplementationOnce(() => {
           return {
             list: () => {
@@ -146,7 +143,7 @@ describe("Given I am connected as an employee", () => {
 
         window.onNavigate(ROUTES_PATH.Bills);
         await new Promise(process.nextTick);
-        const message = await screen.getByText(/Erreur 500/);
+        const message = screen.getByText(/Erreur 500/);
         expect(message).toBeTruthy();
       });
     });
