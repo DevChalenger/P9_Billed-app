@@ -1,13 +1,15 @@
 /**
  * @jest-environment jsdom
  */
-
+import "@testing-library/jest-dom";
 import { fireEvent, screen } from "@testing-library/dom";
 import NewBillUI from "../views/NewBillUI.js";
 import NewBill from "../containers/NewBill.js";
 import { ROUTES } from "../constants/routes.js";
+import BillsUI from "../views/BillsUI.js";
 import mockStore from "../__mocks__/store";
 import { localStorageMock } from "../__mocks__/localStorage.js";
+import router from "../app/Router.js";
 import userEvent from "@testing-library/user-event";
 
 jest.mock("../app/store", () => mockStore);
@@ -22,6 +24,7 @@ describe("Given I am connected as an employee", () => {
       "user",
       JSON.stringify({
         type: "Employee",
+        email: "e@e",
       })
     );
     onNavigate = (pathname) => {
@@ -31,8 +34,7 @@ describe("Given I am connected as an employee", () => {
   describe("When I am on NewBill Page", () => {
     let newBill;
     beforeEach(() => {
-      const html = NewBillUI();
-      document.body.innerHTML = html;
+      document.body.innerHTML = NewBillUI();
       newBill = new NewBill({
         document,
         onNavigate,
@@ -40,10 +42,35 @@ describe("Given I am connected as an employee", () => {
         localStorage: window.localStorage,
       });
     });
-    describe("When I do fill fields in correct format and I click on button 'Envoyer'", () => {
+    describe("When I fill fields and I click on button 'Envoyer'", () => {
+      let typeExpense;
+      let nameExpense;
+      let dateExpense;
+      let amountExpense;
+      let noTaxedExpense;
+      let taxedExpense;
+      let formFile;
+      beforeEach(() => {
+        typeExpense = screen.getByTestId("expense-type");
+        nameExpense = screen.getByTestId("expense-name");
+        dateExpense = screen.getByTestId("datepicker");
+        amountExpense = screen.getByTestId("amount");
+        noTaxedExpense = screen.getByTestId("vat");
+        taxedExpense = screen.getByTestId("pct");
+        formFile = screen.getByTestId("file");
+      });
+      it("should check input field is required", () => {
+        expect(typeExpense).toBeRequired();
+        expect(nameExpense).not.toBeRequired();
+        expect(dateExpense).toBeRequired();
+        expect(amountExpense).toBeRequired();
+        expect(noTaxedExpense).not.toBeRequired();
+        expect(taxedExpense).toBeRequired();
+        expect(formFile).toBeRequired();
+      });
       it("should check if the file of the justificatory is correct", () => {
-        //
-        const formFile = screen.getByTestId("file");
+        //Get Input file
+
         const extention = ["jpg", "jpeg", "png"];
         let fileExtension;
 
@@ -101,11 +128,51 @@ describe("Given I am connected as an employee", () => {
         const eventFormNewBill = jest.fn((e) => {
           newBill.handleSubmit(e);
         });
-
         formNewBill.addEventListener("submit", eventFormNewBill);
         fireEvent.submit(formNewBill);
         expect(formNewBill).toBeTruthy();
         expect(eventFormNewBill).toHaveBeenCalled();
+      });
+      describe("When an error occurs on API", () => {
+        beforeEach(() => {
+          jest.spyOn(mockStore, "bills");
+
+          const root = document.createElement("div");
+          root.setAttribute("id", "root");
+          document.body.appendChild(root);
+          router();
+        });
+        it("should fetches messages from an API and fails with 404 message error", async () => {
+          mockStore.bills.mockImplementationOnce(() => {
+            return {
+              list: () => {
+                return Promise.reject(new Error("Erreur 404"));
+              },
+            };
+          });
+
+          await new Promise(process.nextTick);
+
+          document.body.innerHTML = BillsUI({ error: "Erreur 404" });
+          const message = screen.getByText(/Erreur 404/);
+          expect(message).toBeTruthy();
+        });
+
+        it("should fetches messages from an API and fails with 500 message error", async () => {
+          mockStore.bills.mockImplementationOnce(() => {
+            return {
+              list: () => {
+                return Promise.reject(new Error("Erreur 500"));
+              },
+            };
+          });
+
+          await new Promise(process.nextTick);
+
+          document.body.innerHTML = BillsUI({ error: "Erreur 500" });
+          const message = screen.getByText(/Erreur 500/);
+          expect(message).toBeTruthy();
+        });
       });
     });
   });
